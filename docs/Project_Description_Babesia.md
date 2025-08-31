@@ -79,25 +79,18 @@ Pipeline:
 ### Pipeline's architecture 
 
 ## Directory structure
-babesia_genomic_analysis
-├── bin
-│   └── REMOVEME.txt
-├── data
-│   └── REMOVEME.txt
-├── docs
-│   ├── Comparative and functional genomics of the protozoan Babesia divergens highlighting the invasion and egress processes.pdf
-│   └── Descripcion_proyecto_Babesia.md.md
-├── lib
-│   └── REMOVEME.txt
-├── LICENSE
-├── raramuri
-├── README.md
-├── results
-│   └── REMOVEME.txt
-├── src
-│   └── REMOVEME.txt
-└── test
-    └── REMOVEME.txt
+babesia_genomic_analysis/  
+├── bin/ # Executable scripts  
+├── data/ # Raw and processed data
+├── docs/ # Documentation  
+│├──Comparative_and_functional_genomics_of_the_protozoan_Babesia_divergens_highlighting_the_invasion_and_egress_processes.pdf  
+│└── Project_Description_Babesia.md
+├── results/ # Analysis results  
+├── src/ # Source code  
+├── lib/ # Libraries and dependencies  
+├── test/ # Test files  
+├── LICENSE  
+└── README.md
 
 ### Usage case: Differential expression analysis
 

@@ -22,17 +22,11 @@ Babesiosis is an emerging zoonotic disease caused by the protozoan parasite *Bab
 
 babesia_genomic_analysis/  
 ├── bin/ # Executable scripts  
-├── data/ # Raw and processed data  
-│ ├── raw_fastq/ # Downloaded FASTQ files  
-│ ├── reference/ # Genome reference files  
-│ └── processed/ # Processed alignment files  
+├── data/ # Raw and processed data
 ├── docs/ # Documentation  
-│ ├── project_report.md  
-│ └── original_article.pdf  
+│ ├──Comparative_and_functional_genomics_of_the_protozoan_Babesia_divergens_highlighting_the_invasion_and_egress_processes.pdf  
+│ └── Project_Description_Babesia.md
 ├── results/ # Analysis results  
-│ ├── quality_control/  
-│ ├── differential_expression/  
-│ └── blast_annotations/  
 ├── src/ # Source code  
 ├── lib/ # Libraries and dependencies  
 ├── test/ # Test files  
