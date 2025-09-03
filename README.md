@@ -33,7 +33,6 @@ babesia_genomic_analysis/
 ├── LICENSE  
 └── README.md
 
-text
 
 ## Analysis Pipeline
 
@@ -64,7 +63,7 @@ This project is available under the MIT license. See the LICENSE file for more d
 ## Citation
 
 If you use this work in your research, please cite:  
-López Ordaz H, De Los Santos Huesca IM, Jiménez Sotelo M. (2025). Comparative and functional genomics of Babesia divergens highlighting the invasion and egress processes. [GitHub Repository]. https://github.com/[username]/babesia_genomic_analysis
+López Ordaz H, De Los Santos Huesca IM, Jiménez Sotelo M. (2025). Comparative and functional genomics of Babesia divergens highlighting the invasion and egress processes. [GitHub Repository]. https://github.com/mateomics/babesia_genomic_analysis
 
 ## Contact
 
