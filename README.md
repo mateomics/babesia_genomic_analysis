@@ -62,7 +62,7 @@ babesia_genomic_analysis/
 ## Installation and Usage
 
 [*Installation instructions and usage examples will be added here as the project develops*]
-Due to the genome sizes, we were not able to upload the different *Babesia* `fna` files to the repository, even though they were compressed on a `gz` format. Therefore, they are available using file transfer protocol in the following links:
+Due to *GitHub*'s 2Gb quote and genome sizes, which exceded it, we were not able to upload the different *Babesia* `fna` files to the repository, even though they were compressed on a `gz` format. Therefore, they are available using file transfer protocol in the following links:
 - [*Babesia divergens*](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/001/077/455/GCA_001077455.2_ASM107745v2/GCA_001077455.2_ASM107745v2_genomic.fna.gz)
 - [*Babesia microti*](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/691/945/GCF_000691945.2_ASM69194v2/GCF_000691945.2_ASM69194v2_genomic.fna.gz)
 - [*Babesia bovi*](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/165/395/GCF_000165395.2_ASM16539v2/GCF_000165395.2_ASM16539v2_genomic.fna.gz)
