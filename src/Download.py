@@ -274,91 +274,125 @@ def linker(dbs:list,id_uniq:str,show=0,db_origin="bioproject")->list:
     
     
     return [dbs_uids, dbs_summarys]
+
 #====================================================================================================================================================================
 
-def download_srr(sra_id:list,concatenate=None): 
+def prefetch_and_conversion(srr_ids: list, output_dir: str='../data/SRR', sh_usage: bool=True) -> None:
+    """
+    Downloads each SRR file from a given ID list. Then, they're re-aranged as FastQ files.
+    This is achieved either by using a mixed python-bash strategy or only python.
+
+    Args:
+        - srr_ids: SRR ID list (list)
+        - output_dir: Desired output path (str)
+        - sh_usage: Flag to specify which strategy to use (bool)
+    """
+
+    if sh_usage:
+        for srr_id in srr_ids:
+            # Run bash '.sh' script
+            subprocess.run(['bash', 'download_single_srr.sh', output_dir, srr_id], check=True)
+            # Write the fasta files download
+            summary(f'\nThe SRRs files {srr_id} were download in {srr_output_dir}/\n')
+        return None
+
+    for srr_id in srr_ids:
+        # Download the files as an SRR file
+        subprocess.run(['prefetch', '--output-directory', output_dir, srr_id], check=True)
+        
+        # Transform the files in fastq 
+        srr_output_dir = os.path.join(output_dir, srr_id)
+    
+        # This line obtain the fastq files separated in case being paired end 
+        
+        subprocess.run(['fastq-dump', srr_id, '-O', srr_output_dir,'--split-files', '--gzip'], check=True)
+       
+        # Write the fasta files download
+        summary(f'\nThe SRRs files {srr_id} were download in {srr_output_dir}/\n') # Retrieve f-string
+
+#====================================================================================================================================================================
+
+def concatenate(files: list, out: str, sh_usage: bool=True) -> None:
+    """
+    Concatenate de-compressed FastQ files from a given file list and re-compresses the resulting file
+
+    Args:
+        - files: FastQ file's list (list)
+        - out: Desired output path (str)
+        - sh_usage: Flag to specify which strategy to use (bool)
+    """
+    if sh_usage:
+        subprocess.run(['bash', 'concatenate_fastqs.sh', out, *files], check=True) # Send all files on list as separate arguments
+        return None
+    # Open the file ../data/SRR/sample*_*.fastq.gz
+    with open(out, 'wb') as file_out: # write binary
+
+        # Zcat give us the information about both files in the list we store, the standard_ouput (files merged)
+        p1 = subprocess.Popen(['zcat'] + files, stdout=subprocess.PIPE) 
+        # Now with gzip we transform the output of zcat in the file with all the runs of a sample
+        p2 = subprocess.Popen(['gzip'], stdin=p1.stdout, stdout=file_out)
+        # Close p1's channel
+        p1.stdout.close()
+        # Make sure all info processes have ended correctly
+        p2.communicate()
+
+#====================================================================================================================================================================
+
+def download_srr(sra_id: list, concatenate_sample: bool | str =None, sh_usage: bool=True) -> None:
     """
     Function that make de download of SRR files asociated with a one or more srr uid
     
     Arguments: 
-        -sra_id : list with the uid to be consulted (list)
-        -concatenate : a flag to specifie if the files are from one GSM experiment (none/str)
+        - sra_id : list with the uid to be consulted (list)
+        - concatenate: Flag to specify if files are from a determined GSM experiment. _1 denotes forward-read files.
+                    Thus, _2 is used for reverse-read files (none/str)
     
     """
     
-    # Use ecfecth to obtain the information of the uid in sra
-    
-    handle = Entrez.efetch(db="sra", id=sra_id, rettype="runinfo", retmode="text")
+    # Use 'efetcth' to obtain the information of the UID in SRA
+    handle = Entrez.efetch(db="sra", id=sra_id, rettype="runinfo", retmode="text") # Retrieve IDs info.
     bite_file= handle.read()
     handle.close()
     
-    #Its common this files are binary strings so we decodifie it 
+    # Decode file, if binary
     if isinstance(bite_file, bytes):
         bite_file = bite_file.decode("utf-8")
 
-    #Make a data frame with the string 
+    # Make a data frame with the string 
     df = pd.read_csv(StringIO(bite_file))
-    
         
+    # Visualize columns
     print(df[['Run','Experiment','Platform','LibraryName','LibraryLayout','Sample','ScientificName','SampleName']])
     
-    #obtain only the SRR ids related 
-    srr_ids=list(df["Run"])
+    # Obtain only SRR IDs related 
+    srr_ids = list(df["Run"]) # Casting from pd.series to list, to enhance 'Bio' usage
     
-    
-    #The directory for the output 
-    output_dir = "../data/SRR"
+    # SRR files download and conversion to FastQs
+    os.makedirs(output_dir := '../data/SRR', exist_ok=True) # Makes directory not existing yet
+    prefetch_and_conversion(srr_ids, output_dir, sh_usage)
 
-    for srr_id in srr_ids:
-        #Download the files as a srr file
-        subprocess.run(["prefetch", "--output-directory", output_dir, srr_id], check=True)
-        
-        #Transform the files in fastq 
-        srr_output_dir = os.path.join(output_dir, srr_id)
-    
-        #This line obtain the fastq files separated in case being paired end 
-        
-        subprocess.run(["fastq-dump", srr_id, "-O", srr_output_dir,"--split-files", "--gzip"], check=True)
-       
-        
-        #write the fasta files download
-        summary(f"\nThe SRRs files {srr_id} were download in {srr_output_dir}/\n")
-
-    #if the files belong to a single experiment, the we have to concatenate them 
-    if concatenate: 
-        #Use _1 to the files fw and _2 to the reversed files 
-        #Each one of this list conatin the two path of the fastq files download before 
-        files_fw = [output_dir + "/" + f + "/" + f + "_1.fastq.gz" for f in srr_ids]
-        files_rv = [output_dir + "/" + f + "/" + f + "_2.fastq.gz" for f in srr_ids]
+    # Concatenate files if they belong to the same experiment
+    if concatenate_sample: 
+        # Each one of this lists conatin the two path of the fastq files download before 
+        files_fw = [f'{output_dir}/{id}/{id}_1.fastq.gz' for id in srr_ids] # Como FASTA
+        files_rv = [f'{output_dir}/{id}/{id}_2.fastq.gz' for id in srr_ids]
 
         # Create the output files with the name of the sample 
-        out_fw = output_dir + f"/sample{concatenate}_1.fastq.gz"
-        out_rv = output_dir + f"/sample{concatenate}_2.fastq.gz"
+        out_fw = (path := f'{output_dir}/sample{concatenate_sample}') + '_1.fastq.gz'
+        out_rv = path + '_2.fastq.gz'
     
         # Open the file ../data/SRR/sample<nameofsample>_1.fastq.gz
-        with open(out_fw, "wb") as file_out:
-            #with zcat we obtain the information of both files in the list we store, the standar_ouput (files merged)
-            p1 = subprocess.Popen(["zcat"] + files_fw, stdout=subprocess.PIPE) 
-            #now with gzip we transform the output of zcat in the file with all the runs of a sample
-            p2 = subprocess.Popen(["gzip"], stdin=p1.stdout, stdout=file_out)
-            #Close the p1 channel
-            p1.stdout.close()
-            #Make sure all info being correct 
-            p2.communicate()
+        concatenate(files_fw, out_fw, sh_usage)
 
-        #We do the same with the reversed data 
-        with open(out_rv, "wb") as fout:
-            p1 = subprocess.Popen(["zcat"] + files_rv, stdout=subprocess.PIPE)
-            p2 = subprocess.Popen(["gzip"], stdin=p1.stdout, stdout=fout)
-            p1.stdout.close()
-            p2.communicate()
-        #now we have concatenate fw data with fw data and rv with rv in two files 
-        print(f"Files concatenated in {output_dir}/sample{concatenate}_<1/2>.fastq.gz")
+        # And now the same with reversed-read data 
+        concatenate(files_rv, out_rv, sh_usage)
+
+        # Show concatenated fw-fw and rv-rv data
+        print(f'Files concatenated in {output_dir}/sample{concatenate_sample}_<1/2>.fastq.gz')
     else: 
-        print(f"SRRs files were no concatenated") 
-    return
-        
-        
+        print(f'SRRs files were no concatenated') 
+    return None
+
 #====================================================================================================================================================================
    
 def reference(organism:str): 
@@ -617,6 +651,9 @@ def parser():
     parser.add_argument("--per_dw",
                         action="store_true",
                         help="Use the interactive mode of the script, helpfull to download specific SRR related to the data bases given")
+    parser.add_argument("--py",
+                        action="store_true",
+                        help="Indicates that only-python strategy to download SRR files is desired. When not used, a mixed python-bash strategy will be used.")
     
     #Get de arguments parsed 
     args= parser.parse_args() 
@@ -630,7 +667,7 @@ def main():
     The main function serve as the template for running all the task in the downaload of SRR samples files and reference genome pipeline 
     
     """  
-    #Obatain all the arguments given from the user
+    #Obtain all the arguments given from the user
     arguments=parser() 
     
     Entrez.email= arguments.email
@@ -642,9 +679,10 @@ def main():
     ref=arguments.ref
     organism=arguments.organism
     personalized=arguments.per_dw
+    py_only = arguments.py
     
 
-    #Obtain the uid of the Bioproject only the first One 
+    #Obtain the UID of the Bioproject only the first One 
     
     Bioproject_uid=searcher("bioproject",projec_input)
     
@@ -688,7 +726,7 @@ def main():
                 case "gds":
                     gds="perso"
                 case "biosample": 
-                    bio_sample="perso"    
+                    biosample="perso"    
     
 
     #obatain the srr uids for download for each data base that is especified 
@@ -707,19 +745,19 @@ def main():
                 continue
             #if the user has specified a number of uids for downloading each srr asociated 
             case _: 
-                uids=Bioproject_elinks[0][db][eval(db)]
+                uids=Bioproject_elinks[0][db][:int(eval(db))]
                 srr_ids=obtain_srr(db,uids)
         #download the srr in order with the db 
         if srr_ids and db=="sra":
             for srr in srr_ids:
-                download_srr(srr)
+                download_srr(srr, sh_usage=not py_only) # False when '--py' is True
         elif  srr_ids and db=="gds":
             for srr in srr_ids.keys():
-                download_srr(srr_ids[srr], srr)
+                download_srr(srr_ids[srr], srr, sh_usage=not py_only)
         elif srr_ids and db=="biosample": 
             for bio_sample in srr_ids.keys():
                 for srr in bio_sample:
-                    download_srr(srr)
+                    download_srr(srr, sh_usage=not py_only)
             
     if ref:
         #now its time to download the referencie genome 
