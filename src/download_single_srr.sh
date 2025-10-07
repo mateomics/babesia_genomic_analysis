@@ -19,7 +19,7 @@ for file in "$output_dir"/"$srr_id"*; do
     if [ ! -s "$file" ]; then # True if file does not exists or has 0 bytes in it
         echo "$srr_id has been deleted, since it didn't have any content" >> output/summary.txt
         rm "$file"
-        exit 1
+        continue 1
     fi
 
     # 2. Verify file has 4 lines -> Identifier, sequence, separator and quality Phred score
@@ -27,15 +27,16 @@ for file in "$output_dir"/"$srr_id"*; do
     if ((file_lines % 4 != 0)); then # (()) to indicate aritmetic operations
         echo "$srr_id has been deleted, since it was probably truncated" >> output/summary.txt
         rm "$file"
-        exit 1
+        continue 1
     fi
 
-    # 3. Verify file has '@' only at the start of the line
-    at_count=$(zcat "$file" | grep -o '@' | wc -l)
-    at_headers=$(zcat "$file" | grep -c '^@')
-    if [ "$at_count" -ne "$at_headers" ]; then
+    # 3. Verify file has as much of '@'s as header lines
+    n_lines=$((file_lines / 4))
+    line_headers=$(zcat "$file" | grep -c '^@')
+    if [ "$n_lines" -ne "$line_headers" ]; then
         echo "$srr_id has been deleted, since it did not have the expected format" >> output/summary.txt
         rm "$file"
-        exit 1
+        continue 1
     fi
 done
+
