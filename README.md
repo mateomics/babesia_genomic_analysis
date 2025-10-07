@@ -14,8 +14,23 @@ Babesiosis is an emerging zoonotic disease caused by the protozoan parasite *Bab
 
 ## Data Sources
 
-- **RNA-seq Data**: [Fuente](link)
-- **Reference Genome**: [Fuente](link)
+- **RNA-seq Data**:
+  
+  [ID 552284 - BioProject PRJNA552284 - NCBI](https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA552284)
+
+  [SRR9624157: NCBI](https://trace.ncbi.nlm.nih.gov/Traces/?view=run_browser&acc=SRR9624157&display=download)
+
+  [SRR9624156: NCBI](https://trace.ncbi.nlm.nih.gov/Traces/?view=run_browser&acc=SRR9624156&display=download)
+
+  [SRR9624155: NCBI](https://trace.ncbi.nlm.nih.gov/Traces/?view=run_browser&acc=SRR9624155&display=download) 
+
+  [SRR9624154: NCBI](https://trace.ncbi.nlm.nih.gov/Traces/?view=run_browser&acc=SRR9624154&display=metadata)
+
+  [SRR9624153: NCBI](https://trace.ncbi.nlm.nih.gov/Traces/?view=run_browser&acc=SRR9624153&display=download)
+
+  [SRR9624152: NCBI](https://trace.ncbi.nlm.nih.gov/Traces/?run=SRR9624152)
+
+- **Reference Genome**: [Datasets NCBI](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/001/077/455/GCA_001077455.2_ASM107745v2/)
 - **Original Study**: González LM, et al. (2019) PLoS Negl Trop Dis 13(8): e0007680
 
 ## Project Structure
@@ -47,6 +62,10 @@ babesia_genomic_analysis/
 ## Installation and Usage
 
 [*Installation instructions and usage examples will be added here as the project develops*]
+Due to *GitHub*'s 2Gb quote and genome sizes, which exceded it, we were not able to upload the different *Babesia* `fna` files to the repository, even though they were compressed on a `gz` format. Therefore, they are available using file transfer protocol in the following links:
+- [*Babesia divergens*](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/001/077/455/GCA_001077455.2_ASM107745v2/GCA_001077455.2_ASM107745v2_genomic.fna.gz)
+- [*Babesia microti*](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/691/945/GCF_000691945.2_ASM69194v2/GCF_000691945.2_ASM69194v2_genomic.fna.gz)
+- [*Babesia bovi*](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/165/395/GCF_000165395.2_ASM16539v2/GCF_000165395.2_ASM16539v2_genomic.fna.gz)
 
 ## Expected Results
 
