@@ -1,0 +1,8 @@
+# The next file specifies the requirements to execute smoothly the code in this repository
+# New requirements will be added as new project develops
+
+# Core scientific Python stack for RNA‑seq analysis
+pandas>=2.2.3
+
+# Sequence manipulation and BAM/FASTA helpers
+biopython>=1.85
