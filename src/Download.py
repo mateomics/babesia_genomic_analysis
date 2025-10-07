@@ -60,7 +60,7 @@ Variable Dictionary:
         -p1, p2: subprocess objects
     
     -Function reference:
-        -organims: organism name for reference
+        -organism: organism name for reference
         -genome_uids: assembly database IDs
         -assembly_data: filtered assembly info
         -relevant_info: fields to extract
@@ -93,7 +93,7 @@ Variable Dictionary:
         -Bioproject_uid: bioproject unique ID
         -relevant_info: summary fields
         -Bioproject_summary: project information
-        -organims: organism name
+        -organism: organism name
         -summary_df: project summary dataframe
         -Bioproject_elinks: database links
         -db_interest: current database
@@ -121,9 +121,9 @@ from io import StringIO
 from ftplib import FTP
 from urllib.parse import urlparse
 
+#=============================================================================================================================================================
 
-
-def summary(text, write="summary.txt"): 
+def summary(text:str, write="summary.txt"): 
     """
     Function to write a file with a summary of the search 
     
@@ -145,7 +145,8 @@ def summary(text, write="summary.txt"):
         sum.write(text)
 
 
-def information(db, id, info=[],show=0): 
+#=============================================================================================================================================================
+def information(db:str, id:str, info=[],show=0)->dict: 
     """
     Function that obtain the summary of a consult in a NCBI db according with the info to be specified
     
@@ -159,7 +160,11 @@ def information(db, id, info=[],show=0):
     
     """
     #Make the consult of the information in the database 
-    handle = Entrez.esummary(db=db, id=id)
+    try:
+        handle = Entrez.esummary(db=db, id=id)
+    except:
+        summary(f"\nIt had been imposible to obtain the {id} summary in the {db} database\n")
+        return 0
     proj_summary = Entrez.read(handle) 
     
     #Get only the dictionary with the information 
@@ -172,7 +177,7 @@ def information(db, id, info=[],show=0):
     
     #if the consult is relevant to the summary we write it 
     if show: 
-        summary(consult_dir)
+        summary(f"\n{consult_dir}\n")
 
     
     #Obtain the relevant fields in the consult
@@ -184,8 +189,9 @@ def information(db, id, info=[],show=0):
     #return de diccionary with the information of the consult
     return consult_dir
 
+#===========================================================================================================================================================
 
-def searcher(data_base, search_term): 
+def searcher(data_base:str, search_term:str)->list: 
     """
     This functios serve as a bridge to link a raw ID to a data base specific ID 
     
@@ -197,12 +203,16 @@ def searcher(data_base, search_term):
     """
     
     #Consult the information of the raw ID
-    handle = Entrez.esearch(db=data_base, term=search_term)
+    try:    
+        handle = Entrez.esearch(db=data_base, term=search_term)
+    except: 
+        raise ValueError(f"The {search_term} is not yet asociated with a {data_base} UID")
+    
     #Obtain the search as a python object, this to be processed 
     search_results = Entrez.read(handle)
     handle.close()  
 
-    #Obtein the list with the ID associated 
+    #Obtain the list with the ID associated 
     ID_search=search_results["IdList"]
 
     #Verify the ID is uniq or specify we continue with the first ID in the list 
@@ -211,21 +221,21 @@ def searcher(data_base, search_term):
     #we verify it has relation with 
     if number_IDs != 1: 
         if number_IDs < 1:
-            summary(F"The {search_term} is no current asociated with a {data_base} uid")
+            summary(F"\nThe {search_term} is no current asociated with a {data_base} uid\n")
             return 0 
         else:
             return ID_search
     else: 
         return ID_search 
     
+#==============================================================================================================================================================
 
-
-def linker(dbs,ID_uniq,show=0): 
+def linker(dbs:list,id_uniq:str,show=0,db_origin="bioproject")->list: 
     """
     Function that obtain the links with other data bases that are especified by the users 
 
     Arguments: 
-        -dbs: list with the data bases for the consult (str)
+        -dbs: list with the data bases for the consult (list)
         -ID_uniq: the id of the bioporject for search (list)
         -show: flag to know if the consult would be written (int)
         
@@ -234,36 +244,39 @@ def linker(dbs,ID_uniq,show=0):
     
     """
     #store the summarize of the consult (numer of uids and database)
-    dbs_summarys=""
+    dbs_summarys=[]
     #store the overall uids consult as a diccionary 
     dbs_uids={}
     for data_base in dbs: 
         #make the consult 
-        handle = Entrez.elink(dbfrom="bioproject", db=data_base, id=ID_uniq)
+        try:
+            handle = Entrez.elink(dbfrom=db_origin, db=data_base, id=id_uniq)
+        except:
+            summary(f"It had been imposible make the elink between {id_uniq} bioproject and {data_base}")
         linksBioProj = Entrez.read(handle)
         handle.close()
                 
         #Verifying it has link with the data base 
         if linksBioProj[0]["LinkSetDb"]:
-            #Obtain de diccionary with the uids in the current data base 
+            #Obtain de dictionary with the uids in the current data base 
             IDs=linksBioProj[0]["LinkSetDb"][0]["Link"]
             #Create a list with only the uids
             only_ids = [link["Id"] for link in IDs]
             #Get the information as a string for teh summary 
-            dbs_summarys+=f"The bioporject {ID_uniq} has {len(IDs)} uids linked with {data_base}\nthe fisrts ones are:{only_ids[:5]}\n "
+            dbs_summarys.append(f"The {db_origin} {id_uniq} has {len(IDs)} uids linked with {data_base}\nthe fisrts ones are:{only_ids[:5]}\n ")
             #Append all the uids in the diccionari of uids 
             dbs_uids[data_base]=only_ids
         else:
-            dbs_summarys+= f"The bioporject {ID_uniq} has not link with {data_base}\n" 
+            dbs_summarys.append(f"The bioporject {id_uniq} has not link with {data_base}\n") 
     #write the result of the consult if it has to be in the summary 
     if show:
-        summary(f"The bioproject has this elinks:\n{dbs_summarys}")
+        summary(f"\nThe {db_origin} has this elinks:\n{dbs_summarys}")
     
-    return dbs_uids
+    
+    return [dbs_uids, dbs_summarys]
+#====================================================================================================================================================================
 
-
-
-def download_srr(sra_id,concatenate=None): 
+def download_srr(sra_id:list,concatenate=None): 
     """
     Function that make de download of SRR files asociated with a one or more srr uid
     
@@ -346,19 +359,21 @@ def download_srr(sra_id,concatenate=None):
     return
         
         
-def reference(organims): 
+#====================================================================================================================================================================
+   
+def reference(organism:str): 
     """
     Function that make the seach of the reference genome and the download if it exits 
     
     Arguments: 
-        -organims: the name of the organims of the reference genome (str)
+        -organism: the name of the organism of the reference genome (str)
     Retunrs: 
         -1: the correct download of the genome 
         -0: there were an error in the download
     """
     
-    #obatin the uids related with the genome of the bioproject organims
-    genome_uids=searcher("assembly", organims )
+    #obatin the uids related with the genome of the bioproject organism
+    genome_uids=searcher("assembly", organism )
 
     #list to store the refseq genomes
     assembly_data = []
@@ -374,7 +389,7 @@ def reference(organims):
 
 
     if not assembly_data: 
-        print(f"{organims} does not have a reference genome yet")
+        print(f"{organism} does not have a reference genome yet")
         return 0
     else: 
         #we use the fisrt refseq genome in the case it were more than one 
@@ -401,7 +416,7 @@ def reference(organims):
     files = ftp.nlst()  
     #close the ftp link 
     ftp.quit() 
-    summary(f"The files stored in the ftp are: {files}")
+    summary(f"\nThe files stored in the ftp are:\n {files}")
 
     #Now we filter the files GFF an fasta (fna) does relevant for us 
     fasta_files = [f for f in files if f.endswith("_genomic.fna.gz")]
@@ -425,7 +440,7 @@ def reference(organims):
             urllib.request.urlretrieve(fasta_url, fasta_out)
             print(f"Genome were download with exit in:{fasta_out}")
         else: 
-            print(f"There were no fasta files for {organims}")
+            print(f"There were no fasta files for {organism}")
         #Use the same startegy for the GFF file    
         if gff_files:
             gff_url = ftp_link + "/" + gff_files[0]
@@ -435,14 +450,135 @@ def reference(organims):
             urllib.request.urlretrieve(gff_url, gff_out)
             print(f"Anotation file GFF were stored in {gff_out}:")
         else:
-            print(f"There were no GFF files for {organims}")  
+            print(f"There were no GFF files for {organism}")  
             
     return 1
+#===============================================================================================================================================================
 
+def interactive(dbs_elinks:list, dbs:list):
+    """
+    Function that allows the selection of specifcs uids of data bases related with the bioproject it stores that information 
+    Arguments: 
+        -dbs_elinks: list with both the dictionary with the data bases and their uids associated (list)
+        -dbs: list of data bases allowed for the personal download (list)
+    returns: 
+        -uids_interest_all: dictionary with the databases and their uids selected by the users (dict)
+    """
+    #Ask the users what data bases is interesed in 
+    dbs_dw=input(f"You have specified this data bases {str(dbs)},\nplease insert dbs interesed in download srr files separated by a coma:").split(sep=",")
+     
+    uids_interest_all={}
+    
+    for db in dbs_dw:
+        #get the uids related with the data base in the iteration
+        db_uids=dbs_elinks[0][db]
+        if db_uids: 
+            uids_interest=[]
+            state=1
+            print(dbs_elinks[1])
+            while state: 
+                operation=int(input(f"Your consulting the {db},Insert 1 to consult especific information of one uid, 2 for download specifics SRR of a GSM uid, 3 download all, 4 for exit: "))
+                match operation:
+                    case 1: 
+                        #Give the user the options of the GSM
+                        print(f"The uids {db} associated with bioproject are: {db_uids}")
+                        #request if the user is interest in one uid 
+                        uid=input("Insert the uid of the GSM interesde in: ")
+                        #consult those information 
+                        uid_summary=information(db, uid)
+                        #print to the user the information 
+                        print(pd.DataFrame.from_dict(uid_summary))
+                        #ask if the user want to download the id consulted
+                        if int(input(f"Do you want to download the SRR related with {uid}, type 1 for yes, 0 for no: ")):
+                            uids_interest.append(uid)  
+                    case 2: 
+                        #Give the user teh options of the GSM
+                        print(f"The uids GSM associated with the bioproject are: {db_uids}")
+                        #Request the udis of the GSM that are interesed in dowloading theri respective SRR samples 
+                        uids_interest=input(f"Insert the uids in {db} you want to download their data, splited by a coma: ").split(sep=",")
+                        state=0
+                    case 3: 
+                        #Asign all the uids related with 
+                        uids_interest=db_uids
+                        state=0
+                    case 4: 
+                        state=0
+                    case _: 
+                        print("Ivalid option, try again")
+            #check the list have uids for the future srr search
+            if uids_interest:
+                #store the uids the user is interested in acoording to the data base 
+                uids_interest_all[db]= uids_interest
+        else: 
+            print(f"The {db} is not linked with the bioproject")
+
+    return uids_interest_all
+
+
+
+#===============================================================================================================================================================
+
+def obtain_srr(db:str, db_uids:list)->list | dict: 
+    """
+    Function to obtain the srr uids associated with the download support data base 
+    Arguments:
+        -db: database of the UIDs to be linked with the SRR uids(str)
+        -db_uids: list with the UIDs to consult (list)
+    Returns: 
+        -uid_dir: diccionary with the multiples uids of the data base (dict)
+    
+    """ 
+    
+    
+    match db:
+        case "gds": 
+            #relevant info for the consults
+            relevant_info=['Accession',"entryType","title","summary","taxon","n_samples","FTPLink","suppFile","Samples"]
+            #make a dictionary that store all the gsm uid : srr realted uids
+            uid_dir={}
+            for uid in db_uids: 
+                #Get the information of this uid
+                consult_dir=information("gds",uid,relevant_info)
+                #Get only the sample uid
+                samples_ids=[sample['Accession'] for sample in consult_dir.get("Samples",[] )] 
+                #Now make the download of ever Sample
+                for sample in samples_ids:
+                    #consult the sra information 
+                    record=searcher("sra",sample)
+                    # Make sure it sample has an SRR associated with 
+                    if not record["IdList"]:
+                        summary(f"They are no srr asociated with{sample}")
+                    else:  
+                        #add to the dictionary
+                        uid_dir[uid]=record["IdList"]
+            return uid_dir
+        
+        
+        case "sra":
+            #the sra uids linked are the srr ids so the return is the same 
+            return db_uids
+            
+        case "biosample": 
+            uid_dir={}
+            for uid in db_uids:
+                #consult the sra asociated with the biosample 
+                bio_sample_elink=linker(["sra"],uid,0,"biosample")
+                srr_uids=bio_sample_elink[0]["sra"]
+                if srr_uids:
+                    uid_dir[uid]=srr_uids
+                else: 
+                    summary(f"They are no srr asociated with{uid}")
+            return uid_dir
+    
+
+#===============================================================================================================================================================
 
 def parser():
+    
     """
     Function that parse our arguments in order to have them in variable utils for our code 
+    returns: 
+        -args: an parser object with all the parsed arguments
     
     """ 
     
@@ -460,25 +596,38 @@ def parser():
                         default="gds,sra,genome,biosample",
                         help="Specifie separated with comas the databases to obtain information about their links to the Bioproject")
     parser.add_argument("--gds",
-                        action="store_true", 
-                        help="Specifie to the program if it has to try downloading the files of the GSE experiments (GSM)")
+                        default= None, 
+                        type=str,
+                        help="Specifie to the program of how many GSM experiments of the GSE elink related files have to download or all for download all files related")
     parser.add_argument("--sra",
-                        action="store_true", 
-                        help="Specifie to the program if it has to try downloading the files of the SRR files")
+                        default= None,
+                        type=str,
+                        help="Specifie to the program how many SRR related files download from de SRA elink or all for download all files related")
+    parser.add_argument("--biosmp",
+                        default= None,
+                        type=str, 
+                        help="Specifie to the program how many SRR related files download from the biosamples or all for download all files related")
     parser.add_argument("--ref", 
                         action="store_true",
                         help="Flag that specifie the download of the reference genome")
+    parser.add_argument("--organism", 
+                        default=None,
+                        type=str,
+                        help="Specifie the organism name for the search quoated by quotes")
+    parser.add_argument("--per_dw",
+                        action="store_true",
+                        help="Use the interactive mode of the script, helpfull to download specific SRR related to the data bases given")
     
     #Get de arguments parsed 
     args= parser.parse_args() 
     
     return args 
 
-
+#============================================================================================================================================================================
 
 def main(): 
     """
-    The main function serve as the template for running all the task in the downaload of SRR and reference genome pipeline 
+    The main function serve as the template for running all the task in the downaload of SRR samples files and reference genome pipeline 
     
     """  
     #Obatain all the arguments given from the user
@@ -488,136 +637,101 @@ def main():
     projec_input=arguments.project  
     gds=arguments.gds
     sra=arguments.sra
+    biosample=arguments.biosmp
     dbs=arguments.dbs.split(sep=",")
     ref=arguments.ref
+    organism=arguments.organism
+    personalized=arguments.per_dw
     
 
-    #Obtain the uid of the Bioproject
-    Bioproject_uid=searcher("bioproject",projec_input)[0]
-    summary(f"The uid for the {projec_input} is {Bioproject_uid}")
+    #Obtain the uid of the Bioproject only the first One 
+    
+    Bioproject_uid=searcher("bioproject",projec_input)
+    
+    #Verify we are working with only one UID 
+    if len(Bioproject_uid) != 1: 
+        Bioproject_uid=Bioproject_uid[0]
+        summary(f"\n The {projec_input} has more tha one bioprojec UID, it has been used the first one")
+    else:
+        summary(f"\nThe uid for the {projec_input} is {Bioproject_uid}\n")
 
 
     #Obtain the summary of the bioproject (only more rlevant features)
     relevant_info=['Project_Id','Project_Acc','Project_Data_Type', 'Project_Title', 'Project_Description', 'Organism_Name']
-    Bioproject_summary=information("bioproject",Bioproject_uid, relevant_info ) 
-    #Obtain the organims name registered in the NCBI
-    organims=Bioproject_summary["Organism_Name"]
+    
+    Bioproject_summary=information("bioproject",Bioproject_uid, relevant_info,1) 
+    #Obtain the organism name registered in the NCBI
+    if not organism:
+        organism=Bioproject_summary["Organism_Name"]
+    
     #Show the bioproject information as a Data frame
     summary_df=pd.DataFrame.from_dict(Bioproject_summary, orient="index")
-    
     print(summary_df)
 
+
     #obtain the elink information  
+    Bioproject_elinks=linker(dbs, Bioproject_uid,1) 
+
+
+    #obatain the data bases support for download 
+    dbs_support=["sra","gds","biosample"]
+    dbs_interest=[db for db in dbs if db in dbs_support]
     
-    Bioproject_elinks=linker(dbs, Bioproject_uid) 
+    #consult if the user wants to do a download
+    if personalized:
+        uids_interest=interactive(Bioproject_elinks, dbs_interest)   
+        for db in uids_interest.keys():
+            #change the flags 
+            match db:
+                case "sra": 
+                    sra="perso"
+                case "gds":
+                    gds="perso"
+                case "biosample": 
+                    bio_sample="perso"    
+    
 
-    #Now we try to download the SRR related to the databases given from the user 
-    if gds: 
-        #in this case gds
-        db_interest = "gds"
-        
-        #verify if the BioProject has elinks with GSE 
-        if not Bioproject_elinks[db_interest]: 
-            print(f"The {Bioproject_uid} bioproject doesnt have current GSE uids linked")
-        else: 
-            #Show the summary to the user and obtain the gds uids: 
-            Bioprjoect_elink_GSE=linker(["gds"], Bioproject_uid)
-            #Question the user what to do 
-            state=1 
-            uids_interest=[]
-            while state: 
-                operation=int(input("Insert 1 to consult especific information of one uid, 2 for download specifics SRR of a GSM uid, 3 download all: "))
-                match operation:
-                    case 1: 
-                        #Give the user teh options of the GSM
-                        print(f"The uids GSM associated with {Bioproject_uid} are: {Bioprjoect_elink_GSE}")
-                        #request if the user is interest in one uid 
-                        uid=input("Insert the uid of the GSM interesde in: ")
-                        #info to be printed of the uid
-                        relevant_info=['Accession',"entryType","title","summary","taxon","n_samples","FTPLink","suppFile","Samples"]
-                        #consult those information 
-                        uid_summary=information("gds", uid, relevant_info)
-                        #print to the user the information 
-                        print(pd.DataFrame.from_dict(uid_summary))
-                    case 2: 
-                        #Give the user teh options of the GSM
-                        print(f"The uids GSM associated with {Bioproject_uid} are: {Bioprjoect_elink_GSE}")
-                        #Request the udis of the GSM that are interesed in dowloading theri respective SRR samples 
-                        uids_interest=input(f"Insert the uids in EGS you want to download their data, splited by a coma: ").split(sep=",")
-                    case 3: 
-                        #Asign all the uids related with 
-                        uids_interest=Bioprjoect_elink_GSE["gds"]
-                        break; 
-                    case _: 
-                        print("Ivalid option, try again")
-                        
-            #Make sure there uids GSM to consults it samples 
-            if uids_interest: 
-                #Consult ever uid to download
-                for uid in uids_interest: 
-                    #Get the information of this uid
-                    consult_dir=information("gds",uid,relevant_info)
-                    #Get only the sample uid
-                    samples_ids=[sample['Accession'] for sample in consult_dir.get("Samples",[] )] 
-                    #Now make the download of ever Sample
-                    for sample in samples_ids:
-                        #consult the sra information 
-                        record=searcher("sra",sample)
-                        # Make sure it sample has an SRR associated with 
-                        if not record["IdList"]:
-                            print("No se encontraron SRR para", sample)
-                        else:  
-                            #start the download of the data 
-                            download_srr(record["IdList"], uid)
-            else: 
-                print("There were not udis specified, it has no download any SRR file related with")
-                            
-        
-    if sra:
-        #Now the data base of interest is sra 
-        db_interest = "sra"
-        
-        #verify if the BioPorject has elinks with GSE 
-        if not Bioproject_elinks[db_interest]: 
-            print(f"The {Bioproject_uid} bioproject doesnt have current GSE uids linked")
-        else: 
-            #Show the summary to the user and obtain the gds uids: 
-            Bioprjoect_elink_sra=linker(["sra"], Bioproject_uid)
-            #Question the user what to do 
-            state=1 
-            uids_interest=[]
-            while state: 
-                operation=int(input("Insert 1 to consult especific information of one uid, 2 for download specifics SRR os a sra uid, 3 download all: "))
-                match operation:
-                    case 1: 
-                        print(f"The uids sra associated with {Bioproject_uid} are: {Bioprjoect_elink_sra}")
-                        uid=input("Insert the uid of the GSM interesde in: ")
-                        uid_summary=searcher(db_interest, uid) #possibly change for a function that can read XML
-                        print(pd.DataFrame.from_dict(uid_summary))
-                    case 2: 
-                        print(Bioprjoect_elink_sra)
-                        uids_interest=input(f"Insert the uids sra you want to download their data, splited by a coma: ").split(sep=",")
-                        state=0
-                    case 3: 
-                        uids_interest=Bioprjoect_elink_sra["sra"]
-                        state=0
-                    case _: 
-                        print("Ivalid option, try again")
-        #Because now we have the uids related to the sra data base is more easy to dowload the files 
-        for id in uids_interest:
-            download_srr(id)
-
+    #obatain the srr uids for download for each data base that is especified 
+    for db in dbs_interest:
+        #use the string for eval it as a variable for the match in order to obtain the value of the flag 
+        match eval(db): 
+            #if the user wants to download all the uids associated 
+            case "all":
+                uids=Bioproject_elinks[0][db]
+                srr_ids=obtain_srr(db, uids)
+            #if the user had uses the personal downloading 
+            case "perso": 
+                uids=uids_interest[db]
+                srr_ids=obtain_srr(db,uids)
+            case None:
+                continue
+            #if the user has specified a number of uids for downloading each srr asociated 
+            case _: 
+                uids=Bioproject_elinks[0][db][eval(db)]
+                srr_ids=obtain_srr(db,uids)
+        #download the srr in order with the db 
+        if srr_ids and db=="sra":
+            for srr in srr_ids:
+                download_srr(srr)
+        elif  srr_ids and db=="gds":
+            for srr in srr_ids.keys():
+                download_srr(srr_ids[srr], srr)
+        elif srr_ids and db=="biosample": 
+            for bio_sample in srr_ids.keys():
+                for srr in bio_sample:
+                    download_srr(srr)
+            
     if ref:
         #now its time to download the referencie genome 
-        if not organims: 
+        if not organism: 
             #If the organism name were no specified
-            organims=input("No organims was specified at the bioproject summary plese enter the scientific name: ")
+            organism=input("No organism was specified at the bioproject summary plese enter the scientific name: ")
         
         #call for the download of the reference genome 
-        genome=reference(organims)
+        genome=reference(organism)
         
         if not genome: 
-            print(f"There was imposible download the reference genome of {organims}")
+            print(f"There was imposible download the reference genome of {organism}")
     
     print("The program has finished sucesfully")
     
