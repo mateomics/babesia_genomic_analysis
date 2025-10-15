@@ -123,7 +123,7 @@ from urllib.parse import urlparse
 
 #=============================================================================================================================================================
 
-def summary(text:str, write="summary.txt"): 
+def summary(text:str, write:str="summary.txt"): 
     """
     Function to write a file with a summary of the search 
     
@@ -146,7 +146,30 @@ def summary(text:str, write="summary.txt"):
 
 
 #=============================================================================================================================================================
-def information(db:str, id:str, info=[],show=0)->dict: 
+
+def make_tsv(dictionary:dict)->str:
+    """
+    Function that makes a string with the format of a table to be write in a summary.txt 
+    Arguments: 
+        -dict (dict): dictionary with the information to make the table 
+    returns: 
+        -str_tsv (str): string with the dicctionary as a table  
+    
+    """
+    str_tsv=""
+    
+    for key in dictionary.keys():
+        str_tsv+=f"{str(key)}\t"
+    
+    str_tsv+="\n"
+    for key in dictionary.keys():
+        str_tsv+=f"{str(dictionary[key])}\t" 
+        
+    return str_tsv
+
+
+#=============================================================================================================================================================
+def information(db:str, id:str, info:list=[],show:int=0)->dict: 
     """
     Function that obtain the summary of a consult in a NCBI db according with the info to be specified
     
@@ -174,17 +197,17 @@ def information(db:str, id:str, info=[],show=0)->dict:
     except: 
         #this for other consults 
         consult_dir=proj_summary[0]
-    
-    #if the consult is relevant to the summary we write it 
-    if show: 
-        summary(f"\n{consult_dir}\n")
-
-    
+      
     #Obtain the relevant fields in the consult
     if info:
         consult_dir={
             key:consult_dir.get(key) for key in info    
         }
+    
+    #if the consult is relevant to the summary we write it 
+    if show: 
+        tsv=make_tsv(consult_dir)
+        summary(f"\n{tsv}\n")
     
     #return de diccionary with the information of the consult
     return consult_dir
@@ -230,7 +253,7 @@ def searcher(data_base:str, search_term:str)->list:
     
 #==============================================================================================================================================================
 
-def linker(dbs:list,id_uniq:str,show=0,db_origin="bioproject")->list: 
+def linker(dbs:list,id_uniq:str|list,show=0,db_origin="bioproject")->list: 
     """
     Function that obtain the links with other data bases that are especified by the users 
 
@@ -244,7 +267,7 @@ def linker(dbs:list,id_uniq:str,show=0,db_origin="bioproject")->list:
     
     """
     #store the summarize of the consult (numer of uids and database)
-    dbs_summarys=[]
+    dbs_summarys=""
     #store the overall uids consult as a diccionary 
     dbs_uids={}
     for data_base in dbs: 
@@ -262,14 +285,16 @@ def linker(dbs:list,id_uniq:str,show=0,db_origin="bioproject")->list:
             IDs=linksBioProj[0]["LinkSetDb"][0]["Link"]
             #Create a list with only the uids
             only_ids = [link["Id"] for link in IDs]
-            #Get the information as a string for teh summary 
-            dbs_summarys.append(f"The {db_origin} {id_uniq} has {len(IDs)} uids linked with {data_base}\nthe fisrts ones are:{only_ids[:5]}\n ")
+            #Get the information as a string for the summary 
+            dbs_summarys+=f"The {db_origin} {id_uniq} has {len(IDs)} uids linked with {data_base}\nthe fisrts ones are:{only_ids[:5]}\n"
             #Append all the uids in the diccionari of uids 
             dbs_uids[data_base]=only_ids
         else:
-            dbs_summarys.append(f"The bioporject {id_uniq} has not link with {data_base}\n") 
+            dbs_summarys+=f"The bioporject {id_uniq} has not link with {data_base}\n"
+    
     #write the result of the consult if it has to be in the summary 
     if show:
+        
         summary(f"\nThe {db_origin} has this elinks:\n{dbs_summarys}")
     
     
@@ -293,7 +318,7 @@ def prefetch_and_conversion(srr_ids: list, output_dir: str='../data/SRR', sh_usa
             # Run bash '.sh' script
             subprocess.run(['bash', 'download_single_srr.sh', output_dir, srr_id], check=True)
             # Write the fasta files download
-            summary(f'\nThe SRRs files {srr_id} were download in {srr_output_dir}/\n')
+            summary(f'\nThe SRRs files {srr_id} were download in {output_dir}/{srr_id}/\n')
         return None
 
     for srr_id in srr_ids:
@@ -489,7 +514,7 @@ def reference(organism:str):
     return 1
 #===============================================================================================================================================================
 
-def interactive(dbs_elinks:list, dbs:list):
+def interactive(dbs_elinks:list, dbs:list)->dict:
     """
     Function that allows the selection of specifcs uids of data bases related with the bioproject it stores that information 
     Arguments: 
@@ -581,7 +606,7 @@ def obtain_srr(db:str, db_uids:list)->list | dict:
                     record=searcher("sra",sample)
                     # Make sure it sample has an SRR associated with 
                     if not record["IdList"]:
-                        summary(f"They are no srr asociated with{sample}")
+                        summary(f"They are no srr asociated with {sample} GSM uid")
                     else:  
                         #add to the dictionary
                         uid_dir[uid]=record["IdList"]
@@ -601,7 +626,7 @@ def obtain_srr(db:str, db_uids:list)->list | dict:
                 if srr_uids:
                     uid_dir[uid]=srr_uids
                 else: 
-                    summary(f"They are no srr asociated with{uid}")
+                    summary(f"They are no srr asociated with {uid} Biosample")
             return uid_dir
     
 
@@ -688,13 +713,13 @@ def main():
     
     #Verify we are working with only one UID 
     if len(Bioproject_uid) != 1: 
-        Bioproject_uid=Bioproject_uid[0]
+        Bioproject_uid=str(Bioproject_uid[0])
         summary(f"\n The {projec_input} has more tha one bioprojec UID, it has been used the first one")
     else:
         summary(f"\nThe uid for the {projec_input} is {Bioproject_uid}\n")
 
 
-    #Obtain the summary of the bioproject (only more rlevant features)
+    #Obtain the summary of the bioproject (only more relevant features)
     relevant_info=['Project_Id','Project_Acc','Project_Data_Type', 'Project_Title', 'Project_Description', 'Organism_Name']
     
     Bioproject_summary=information("bioproject",Bioproject_uid, relevant_info,1) 
@@ -702,7 +727,7 @@ def main():
     if not organism:
         organism=Bioproject_summary["Organism_Name"]
     
-    #Show the bioproject information as a Data frame
+    #Show the bioproject information as a Data frame while the script is running 
     summary_df=pd.DataFrame.from_dict(Bioproject_summary, orient="index")
     print(summary_df)
 
@@ -715,7 +740,7 @@ def main():
     dbs_support=["sra","gds","biosample"]
     dbs_interest=[db for db in dbs if db in dbs_support]
     
-    #consult if the user wants to do a download
+    #consult if the user wants to do a personalized download
     if personalized:
         uids_interest=interactive(Bioproject_elinks, dbs_interest)   
         for db in uids_interest.keys():
@@ -728,8 +753,13 @@ def main():
                 case "biosample": 
                     biosample="perso"    
     
-
-    #obatain the srr uids for download for each data base that is especified 
+    #make a warning if the user select more than one db support for downloading for get the SRR files 
+    if sra and gds and bio_sample: 
+        print("Warning you have selected more than one data base for downloading")
+        summary("\nThere were selected more than one data base for downloading it could be duplicated SRR files\n")
+    
+    
+    #obtain the srr uids for download for each data base that is especified 
     for db in dbs_interest:
         #use the string for eval it as a variable for the match in order to obtain the value of the flag 
         match eval(db): 
@@ -756,14 +786,22 @@ def main():
                 download_srr(srr_ids[srr], srr, sh_usage=not py_only)
         elif srr_ids and db=="biosample": 
             for bio_sample in srr_ids.keys():
-                for srr in bio_sample:
+                summary(f"\nIt had downloaded the following SRR files related with {bio_sample}:\n")
+                for srr in srr_ids[bio_sample]:
+                    summary(f"\nDownloaded the SRR files realted with {srr} SRA uid\n")
                     download_srr(srr, sh_usage=not py_only)
             
     if ref:
         #now its time to download the referencie genome 
-        if not organism: 
-            #If the organism name were no specified
-            organism=input("No organism was specified at the bioproject summary plese enter the scientific name: ")
+        if not organism:#If the organism name were no specified 
+            #get the biosample uids linked with the Bioproject 
+            biosample_elinks=linker(["biosample"],Bioproject_uid)
+            #We only select the first one 
+            biosample_uid=biosample_elinks[0]["biosample"][0] 
+            #Now consult the information in the database
+            info_biosample=information("biosample", biosample_uid)
+            #Obtain the name of the organism by it first biosample 
+            organism=info_biosample["Organism"]
         
         #call for the download of the reference genome 
         genome=reference(organism)

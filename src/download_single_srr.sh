@@ -10,11 +10,13 @@ srr_id="$2" # Single SRR ID to download
 
 # Download
 prefetch --output-directory "$output_dir" "$srr_id"
+
+srr_dir="$output_dir"/"$srr_id"
 # FastQ conversion
-fastq-dump "$srr_id" -O "$output_dir" --split-files --gzip # Separate forward and reverse files, and compress the output
+fastq-dump "$srr_id" -O "$srr_dir" --split-files --gzip # Separate forward and reverse files, and compress the output
 
 # Iterate over files in the output directory for this SRR
-for file in "$output_dir"/"$srr_id"*; do
+for file in "$srr_dir"/*.fastq.gz; do
     # 1. Verify file exists
     if [ ! -s "$file" ]; then # True if file does not exists or has 0 bytes in it
         echo "$srr_id has been deleted, since it didn't have any content" >> output/summary.txt

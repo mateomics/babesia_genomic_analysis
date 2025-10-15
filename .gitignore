@@ -181,15 +181,4 @@ marimo/_lsp/
 __marimo__/
 
 #RNAseq Data over_storage 
-data/RNAseq/SRR9624152_1.fastq
-data/RNAseq/SRR9624152_2.fastq
-data/RNAseq/SRR9624153_1.fastq
-data/RNAseq/SRR9624153_2.fastq
-data/RNAseq/SRR9624154_1.fastq
-data/RNAseq/SRR9624154_2.fastq
-data/RNAseq/SRR9624155_1.fastq
-data/RNAseq/SRR9624155_2.fastq
-data/RNAseq/SRR9624156_1.fastq
-data/RNAseq/SRR9624156_2.fastq
-data/RNAseq/SRR9624157_1.fastq
-data/RNAseq/SRR9624157_2.fastq
+data/SRR/
