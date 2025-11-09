@@ -1,4 +1,8 @@
 #!/bin/bash
+set -e # Only to ensure scrpt executions
+set -u # To avoid undefined variables usage
+set -o pipefail # To avoid failed runs
+
 
 output_file="$1"
 shift # Once the output file is saved, remove first argument by displacing it

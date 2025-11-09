@@ -1,14 +1,13 @@
 #!/usr/bin/env bash 
-: '
-Make the fastqc reports for fastq files 
-Arguments: 
-    $1 — directory path with the SRR directories files 
+set -e # Only to ensure scrpt executions
+set -u # To avoid undefined variables usage
+set -o pipefail # To avoid failed runs
 
-The script generate one directory with all the fastqc report on zip and html format
-'
-set -e
-set -u
-set -o pipefail 
+#Make the fastqc reports for fastq files 
+#Arguments: 
+#   $1: directory path with the SRR directories files 
+#   $2: Optional argument for a specific output dir   
+#The script generate one directory with all the fastqc report on zip and html format
 
 # Check that a path argument was provided
 if [[ $# -lt 1 ]]; then
@@ -18,8 +17,15 @@ fi
 
 data_path="$1"
 
-# Create a directory for FastQC results
-output_dir="${data_path}/fastqc_results"
+
+#if the user specified a output dir 
+if [[ $# > 2 ]]; then 
+    output_dir=$2 
+else 
+    output_dir="$data_path"/../../results/fastqc
+fi 
+
+# Create a directory for FastQC results"
 mkdir -p "$output_dir"
 
 # Iterate over all SRR directories inside the data path

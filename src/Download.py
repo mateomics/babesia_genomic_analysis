@@ -120,10 +120,11 @@ import subprocess
 from io import StringIO
 from ftplib import FTP
 from urllib.parse import urlparse
+import xml.etree.ElementTree as ET
 
 #=============================================================================================================================================================
 
-def summary(text:str, write:str="summary.txt"): 
+def summary(text:str, write:str="summary.txt")->None: 
     """
     Function to write a file with a summary of the search 
     
@@ -147,7 +148,7 @@ def summary(text:str, write:str="summary.txt"):
 
 #=============================================================================================================================================================
 
-def make_tsv(dictionary:dict)->str:
+def make_tsv(info:dict | pd.DataFrame)->str:
     """
     Function that makes a string with the format of a table to be write in a summary.txt 
     Arguments: 
@@ -158,15 +159,90 @@ def make_tsv(dictionary:dict)->str:
     """
     str_tsv=""
     
-    for key in dictionary.keys():
+    #check if the object info is a data frame
+    if isinstance(info, pd.DataFrame):
+        #obtain the columns
+        columnas=list(info.columns)
+        #make the header of the tsv with teh columns        
+        for col in columnas: 
+            str_tsv+=col + "\t" 
+        str_tsv+="\n"
+        #obtain all the rows in the data frame
+        rows=list(info.index)
+        #iterate over al the rows
+        for row in rows:
+            #obtain every column information of the row as a list 
+            info_row=list(info.loc[row,:])
+            #now we add this information to the tsv sting
+            for feature in info_row:
+                str_tsv+= feature + "\t" 
+            str_tsv+="\n" 
+        #return the string
+        return str_tsv
+    
+    #if it was not a data frame we make the tsv from a dictionary
+    for key in info.keys():
         str_tsv+=f"{str(key)}\t"
     
     str_tsv+="\n"
-    for key in dictionary.keys():
-        str_tsv+=f"{str(dictionary[key])}\t" 
+    for key in info.keys():
+        str_tsv+=f"{str(info[key])}\t" 
         
     return str_tsv
 
+#=============================================================================================================================================================
+
+def fetcher(uid:str,db : str ="sra", mode:str = "text" )->pd.DataFrame | int : 
+    """
+    Function that make the efecth consult and help to obtain metadata of a specified uid in a database
+    Arguments: 
+        -uid: uniq identifier for the fectch
+        -db(str): data base for the fetching
+        -mode(str): more or formar to get from the consult
+    Returns: 
+        -consult_df(data_frame): data frame with the information of the single consult
+        -0(int): state of a failed consult
+        
+    """
+    
+    #check if we are fetching a sra id
+    if db == "sra":
+        handle = Entrez.efetch(db= db, id=uid, rettype="runinfo", retmode="text")
+        runinfo = handle.read()
+        handle.close()
+
+        #make sure we decode de information if it was given in binary format
+        if isinstance(runinfo, bytes):
+            runinfo = runinfo.decode("utf-8")
+            
+        #Now we read de csv with pandas
+        df = pd.read_csv(StringIO(runinfo))
+        #Obtain the relevant information 
+        consult_df=df[['Run','Experiment','Platform','LibraryName','LibraryLayout','Sample','ScientificName','SampleName']]
+        #finaly we return de data frame with the information 
+        return consult_df 
+    #if not we asume we are consulting xml information
+    try:    
+        #make the consult
+        handle = Entrez.efetch(db=db, id=uid, retmode=mode)
+        xml_text = handle.read()
+        handle.close()
+        #obtain the codified information and parse as an xml 
+        root = ET.fromstring(xml_text)
+        #initialice teh dictionary that will store the information 
+        consult_df={}
+        
+        #obtain all the information in the xlm
+        for attr in root.findall(".//SAMPLE_ATTRIBUTE"):
+            tag = attr.findtext("TAG")
+            value = attr.findtext("VALUE")
+            #add the tag to the dictionary as it key 
+            consult_df[tag]=list(value) 
+        #make the dataframe from the dictionary 
+        return pd.DataFrame.from_dict(consult_df)
+        
+    except: 
+        return 0
 
 #=============================================================================================================================================================
 def information(db:str, id:str, info:list=[],show:int=0)->dict: 
@@ -657,15 +733,15 @@ def parser():
     parser.add_argument("--gds",
                         default= None, 
                         type=str,
-                        help="Specifie to the program of how many GSM experiments of the GSE elink related files have to download or all for download all files related")
+                        help="Specifie to the program of how many GSM experiments of the GSE elink related files have to download or 'all' for download all files related")
     parser.add_argument("--sra",
                         default= None,
                         type=str,
-                        help="Specifie to the program how many SRR related files download from de SRA elink or all for download all files related")
+                        help="Specifie to the program how many SRR related files download from de SRA elink or 'all' for download all files related")
     parser.add_argument("--biosmp",
                         default= None,
                         type=str, 
-                        help="Specifie to the program how many SRR related files download from the biosamples or all for download all files related")
+                        help="Specifie to the program how many SRR related files download from the biosamples or 'all' for download all files related")
     parser.add_argument("--ref", 
                         action="store_true",
                         help="Flag that specifie the download of the reference genome")
@@ -790,7 +866,15 @@ def main():
                 for srr in srr_ids[bio_sample]:
                     summary(f"\nDownloaded the SRR files realted with {srr} SRA uid\n")
                     download_srr(srr, sh_usage=not py_only)
-            
+    
+    #make the tsv from the srr information 
+    df_list=[]
+    for uid in srr_ids: 
+        consult_df=fetcher(uid,"sra")
+        df_list.append(consult_df)
+    all_srrs_df=pd.concat(df_list, ignore_index=True) 
+    summary(make_tsv(all_srrs_df), "srr_info.tsv")
+           
     if ref:
         #now its time to download the referencie genome 
         if not organism:#If the organism name were no specified 
