@@ -6,8 +6,8 @@ set -o pipefail # To avoid failed runs
 #Make the alignment of the cleaned SRR files
 #Arguments: 
 #   $1: path with the SRR files that had been cleaned before
-#   $1: path with the genome of reference 
-#   $3: path with the gff file with the anotation of the genes (optional)
+#   $2: path with the genome of reference 
+#   $3: path with the gff file with the anotation of the genes
 #   $4: optional argument for specifing an output dir 
 
 #The script generate one directory with the bam files, and another with the coverage files 
