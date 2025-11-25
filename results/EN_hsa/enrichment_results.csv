@@ -1,0 +1,51 @@
+pathway_id,pathway_description,total_genes_in_pathway,genes_of_interest_in_pathway,percentage_in_pathway,common_genes
+hsa04010,MAPK signaling pathway - Homo sapiens (human),300,1,20.0,hsa:836
+hsa04668,TNF signaling pathway - Homo sapiens (human),119,1,20.0,hsa:836
+hsa04148,Efferocytosis - Homo sapiens (human),157,1,20.0,hsa:836
+hsa04210,Apoptosis - Homo sapiens (human),137,2,40.0,"hsa:835, hsa:836"
+hsa04215,Apoptosis - multiple species - Homo sapiens (human),32,1,20.0,hsa:836
+hsa04115,p53 signaling pathway - Homo sapiens (human),75,1,20.0,hsa:836
+hsa04613,Neutrophil extracellular trap formation - Homo sapiens (human),196,1,20.0,hsa:837
+hsa04621,NOD-like receptor signaling pathway - Homo sapiens (human),189,2,40.0,"hsa:837, hsa:838"
+hsa04623,Cytosolic DNA-sensing pathway - Homo sapiens (human),83,1,20.0,hsa:836
+hsa04650,Natural killer cell mediated cytotoxicity - Homo sapiens (human),134,1,20.0,hsa:836
+hsa04657,IL-17 signaling pathway - Homo sapiens (human),95,1,20.0,hsa:836
+hsa04978,Mineral absorption - Homo sapiens (human),61,1,20.0,hsa:795
+hsa04726,Serotonergic synapse - Homo sapiens (human),115,1,20.0,hsa:836
+hsa05200,Pathways in cancer - Homo sapiens (human),533,1,20.0,hsa:836
+hsa05206,MicroRNAs in cancer - Homo sapiens (human),320,1,20.0,hsa:836
+hsa05205,Proteoglycans in cancer - Homo sapiens (human),204,1,20.0,hsa:836
+hsa05203,Viral carcinogenesis - Homo sapiens (human),205,1,20.0,hsa:836
+hsa05210,Colorectal cancer - Homo sapiens (human),87,1,20.0,hsa:836
+hsa05222,Small cell lung cancer - Homo sapiens (human),93,1,20.0,hsa:836
+hsa05170,Human immunodeficiency virus 1 infection - Homo sapiens (human),214,1,20.0,hsa:836
+hsa05161,Hepatitis B - Homo sapiens (human),163,1,20.0,hsa:836
+hsa05160,Hepatitis C - Homo sapiens (human),159,1,20.0,hsa:836
+hsa05164,Influenza A - Homo sapiens (human),173,1,20.0,hsa:836
+hsa05162,Measles - Homo sapiens (human),139,1,20.0,hsa:836
+hsa05168,Herpes simplex virus 1 infection - Homo sapiens (human),183,1,20.0,hsa:836
+hsa05163,Human cytomegalovirus infection - Homo sapiens (human),227,1,20.0,hsa:836
+hsa05167,Kaposi sarcoma-associated herpesvirus infection - Homo sapiens (human),196,1,20.0,hsa:836
+hsa05169,Epstein-Barr virus infection - Homo sapiens (human),205,1,20.0,hsa:836
+hsa05165,Human papillomavirus infection - Homo sapiens (human),333,1,20.0,hsa:836
+hsa05120,Epithelial cell signaling in Helicobacter pylori infection - Homo sapiens (human),71,1,20.0,hsa:836
+hsa05130,Pathogenic Escherichia coli infection - Homo sapiens (human),203,2,40.0,"hsa:836, hsa:837"
+hsa05132,Salmonella infection - Homo sapiens (human),251,3,60.0,"hsa:836, hsa:837, hsa:838"
+hsa05131,Shigellosis - Homo sapiens (human),253,1,20.0,hsa:837
+hsa05133,Pertussis - Homo sapiens (human),78,1,20.0,hsa:836
+hsa05134,Legionellosis - Homo sapiens (human),56,1,20.0,hsa:836
+hsa05152,Tuberculosis - Homo sapiens (human),182,1,20.0,hsa:836
+hsa05146,Amoebiasis - Homo sapiens (human),103,1,20.0,hsa:836
+hsa05145,Toxoplasmosis - Homo sapiens (human),112,1,20.0,hsa:836
+hsa05010,Alzheimer disease - Homo sapiens (human),391,1,20.0,hsa:836
+hsa05012,Parkinson disease - Homo sapiens (human),271,1,20.0,hsa:836
+hsa05014,Amyotrophic lateral sclerosis - Homo sapiens (human),371,1,20.0,hsa:836
+hsa05016,Huntington disease - Homo sapiens (human),311,1,20.0,hsa:836
+hsa05020,Prion disease - Homo sapiens (human),278,1,20.0,hsa:836
+hsa05022,Pathways of neurodegeneration - multiple diseases - Homo sapiens (human),483,1,20.0,hsa:836
+hsa05417,Lipid and atherosclerosis - Homo sapiens (human),216,1,20.0,hsa:836
+hsa05416,Viral myocarditis - Homo sapiens (human),70,1,20.0,hsa:836
+hsa04936,Alcoholic liver disease - Homo sapiens (human),144,1,20.0,hsa:836
+hsa04932,Non-alcoholic fatty liver disease - Homo sapiens (human),157,1,20.0,hsa:836
+hsa04933,AGE-RAGE signaling pathway in diabetic complications - Homo sapiens (human),101,1,20.0,hsa:836
+hsa01524,Platinum drug resistance - Homo sapiens (human),75,1,20.0,hsa:836
