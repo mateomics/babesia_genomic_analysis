@@ -1,0 +1,15 @@
+Starting enrichment analysis pipeline
+Input file: /proc/self/fd/11
+Organism: bbo
+KEGG IDs mode: True
+Loading gene table...
+Loaded 1 rows
+Extracting gene IDs...
+Found 1 unique gene IDs
+Skipping NCBI to KEGG conversion (using direct KEGG IDs)
+Gene IDs table saved: ../results/EN/gene_ids_table.csv
+Running enrichment analysis...
+Using 1 KEGG IDs: ['bbo:BBOV_I001460']...
+Found 0 enriched pathways
+No enriched pathways found
+Pipeline completed successfully
