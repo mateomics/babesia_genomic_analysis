@@ -90,7 +90,7 @@ def main():
     
     #all the data search is used to recover the genomic postions of the DE genes 
     try:
-        subprocess.run(['bash', 'recover_DE_seqs.sh', "../results/DE/significant_DE_genes.tsv", "/export/space3/users/vjimenez/Genomes/BdivergensROUEN_87/braker.gff3"], check=True) #Check
+        subprocess.run(['bash', 'recover_DE_seqs.sh', "../results/DE/significant_DE_genes.tsv", "../data/Genomes/B_divergens/babesia_draft_clean_braker.gff"], check=True)
     except Exception as e: 
         ut.write(f"The position recovery was not made there was an error {e}", "DE_analysis.log","../results/DE")
 if __name__ == "__main__":
