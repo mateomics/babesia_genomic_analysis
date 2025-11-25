@@ -82,6 +82,120 @@ def convert_ncbi_to_kegg(ncbi_ids: List[str], organism_code: str = "bbo") -> pd.
         write(f"Error. Could not get NCBI's IDs from given KEGG's list: {e}")
         return pd.DataFrame(columns=['ncbi_id', 'kegg_id'])
 
+def convert_kegg_ids(id_list: List[str], target_database: str = "uniprot") -> pd.DataFrame:
+    """
+    Converts KEGG IDs to other database identifiers
+    
+    Parameters
+    ----------
+    -id_list: List[str]
+        List of KEGG IDs
+    -target_database: str
+        Target database ("uniprot", "ncbi-geneid", etc.)
+    
+    Returns
+    -------
+    -pd.DataFrame
+        ID conversion table
+        
+    Raises
+    ------
+    Exception
+        If ID conversion fails
+    """
+    try:
+        ids_string = "+".join(id_list)
+        result = REST.kegg_conv(target_database, ids_string)
+        df = pd.read_table(io.StringIO(result.read()), header=None, sep="\t")
+        df.columns = ['kegg_id', f'id_{target_database}']
+        return df
+    except Exception as e:
+        write(f"Error in ID conversion: {e}")
+        return pd.DataFrame()
+
+def get_kegg_organisms() -> pd.DataFrame:
+    """
+    Retrieves all available organisms from KEGG database
+    
+    Returns
+    -------
+    -pd.DataFrame
+        Table with organism codes and descriptions
+        
+    Raises
+    ------
+    Exception
+        If KEGG API request fails
+    """
+    try:
+        result = REST.kegg_list("organism")
+        df = pd.read_table(io.StringIO(result.read()), header=None, sep="\t")
+        df.columns = ['code', 'description']
+        return df
+    except Exception as e:
+        write(f"Error retrieving organisms: {e}")
+        return pd.DataFrame()
+
+def search_organism(search_term: str = "bovis") -> pd.DataFrame:
+    """
+    Finds organisms matching the search term
+    
+    Parameters
+    ----------
+    -search_term : str
+        Search term (default "bovis")
+    
+    Returns
+    -------
+    -pd.DataFrame
+        Organisms matching the search criteria
+        
+    Raises
+    ------
+    Exception
+        If search operation fails
+    """
+    try:
+        organisms = get_kegg_organisms()
+        if organisms.empty:
+            write("Organisms absent on KEGG")
+            return pd.DataFrame()
+        
+        # Only organisms that matches the given pattern
+        mask = organisms['description'].str.contains(search_term, case=False, na=False) # Case insensitive, Na's as false
+        return organisms[mask]
+    except Exception as e:
+        write(f"Error in organism search: {e}")
+        return pd.DataFrame()
+
+def get_organism_genes(organism_code: str = "bbo") -> pd.DataFrame:
+    """
+    Retrieves all genes for a specific organism
+    
+    Parameters
+    ----------
+    -organism_code: str
+        Organism code (default "bbv" for B. bovis)
+    
+    Returns
+    -------
+    -pd.DataFrame
+        Genes from the specified organism
+        
+    Raises
+    ------
+    Exception
+        If gene retrieval fails
+    """
+    try:
+        result = REST.kegg_list(organism_code)
+        df = pd.read_table(io.StringIO(result.read()), header=None, sep="\t")
+        df.columns = ['gene_id', 'description']
+        return df
+    except Exception as e:
+        write(f"Error retrieving genes for {organism_code}: {e}")
+        return pd.DataFrame()
+
 def get_organism_pathways(organism_code: str = "bbo") -> pd.DataFrame:
     """
     Retrieves metabolic pathways for a specified organism
@@ -109,6 +223,90 @@ def get_organism_pathways(organism_code: str = "bbo") -> pd.DataFrame:
     
     except Exception as e:
         write(f"Error retrieving pathways for {organism_code}: {e}")
+        return pd.DataFrame()
+
+def get_gene_info(gene_id: str) -> str:
+    """
+    Retrieves detailed information for a specified gene, using KEGG_get()
+    
+    Parameters
+    ----------
+    -gene_id: str
+        Gene ID (for example, "bbv:BBOV_III000110")
+    
+    Returns
+    -------
+    -str
+        Complete gene information
+        
+    Raises
+    ------
+    Exception
+        If gene information retrieval fails
+    """
+    try:
+        result = REST.kegg_get(gene_id)
+        return result.read()
+    except Exception as e:
+        write(f"Error retrieving information for {gene_id}: {e}")
+        return ""
+
+def search_genes_by_term(search_term: str, organism_code: str = "genes") -> pd.DataFrame:
+    """
+    Finds genes matching the search term
+    
+    Parameters
+    ----------
+    -search_term : str
+        Search term
+    -organism_code : str, optional
+        Organism code for filtering
+    
+    Returns
+    -------
+    -pd.DataFrame
+        Genes matching the search criteria
+        
+    Raises
+    ------
+    Exception
+        If gene search fails
+    """
+    try:
+        result = REST.kegg_find(organism_code, search_term)
+        df = pd.read_table(io.StringIO(result.read()), header=None, sep="\t")
+        df.columns = ['gene_id', 'description']
+        return df
+    except Exception as e:
+        write(f"Error in gene search: {e}")
+        return pd.DataFrame()
+
+def get_pathways_by_gene(gene_id: str) -> pd.DataFrame:
+    """
+    Retrieves metabolic pathways associated with a gene
+    
+    Parameters
+    ----------
+    -gene_id: str
+        Gene ID
+    
+    Returns
+    -------
+    -pd.DataFrame
+        Pathways associated with the gene
+        
+    Raises
+    ------
+    Exception
+        If pathway association retrieval fails
+    """
+    try:
+        result = REST.kegg_link("pathway", gene_id)
+        df = pd.read_table(io.StringIO(result.read()), header=None, sep="\t")
+        df.columns = ['gene_id', 'pathway_id']
+        return df
+    except Exception as e:
+        write(f"Error retrieving pathways for {gene_id}: {e}")
         return pd.DataFrame()
 
 def get_genes_by_pathway(pathway_id: str) -> pd.DataFrame:
@@ -139,6 +337,83 @@ def get_genes_by_pathway(pathway_id: str) -> pd.DataFrame:
     except Exception as e:
         write(f"Error retrieving genes for {pathway_id}: {e}")
         return pd.DataFrame()
+
+def get_pathway_image(pathway_id: str, organism_code: str = "map") -> bytes:
+    """
+    Retrieves pathway image for visualization
+    
+    Parameters
+    ----------
+    -pathway_id : str
+        Pathway ID (e.g., "00061" for fatty acid biosynthesis)
+    -organism_code : str
+        Organism code for organism-specific pathways (default "map")
+    
+    Returns
+    -------
+    -bytes
+        Image data in bytes
+        
+    Raises
+    ------
+    Exception
+        If image retrieval fails
+    """
+    try:            
+        result = REST.kegg_get(f"{organism_code}{pathway_id}", "image")
+        return result.read()
+    except Exception as e:
+        write(f"Error retrieving pathway image for {pathway_id}: {e}")
+        return b""
+
+def get_kegg_databases() -> pd.DataFrame:
+    """
+    Retrieves list of all available KEGG databases
+    
+    Returns
+    -------
+    -pd.DataFrame
+        Table with database codes and descriptions
+        
+    Raises
+    ------
+    Exception
+        If database retrieval fails
+    """
+    try:
+        result = REST.kegg_list("database")
+        df = pd.read_table(io.StringIO(result.read()), header=None, sep="\t")
+        df.columns = ['database_code', 'description']
+        return df
+    except Exception as e:
+        write(f"Error retrieving KEGG databases: {e}")
+        return pd.DataFrame()
+
+def get_database_info(database_code: str) -> str:
+    """
+    Retrieves information about a specific KEGG database
+    
+    Parameters
+    ----------
+    -database_code: str
+        Database code (for example: "pathway", "compound")
+    
+    Returns
+    -------
+    -str
+        Database information and statistics
+        
+    Raises
+    ------
+    Exception
+        If database info retrieval fails
+    """
+    try:
+        result = REST.kegg_info(database_code)
+        return result.read()
+    except Exception as e:
+        write(f"Error retrieving info for database {database_code}: {e}")
+        return ""
 
 def perform_enrichment_analysis(gene_list: List[str], organism_code: str = "bbo") -> pd.DataFrame:
     """
@@ -324,4 +599,3 @@ def plot_enrichment_bars(enrichment_df: pd.DataFrame,
     except Exception as e:
         write(f"Error generating barplot: {e}")
         return ""
-    
