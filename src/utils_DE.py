@@ -70,8 +70,63 @@ Variable Dictionary:
         -info_matrix: processed metadata DataFrame
         -count_matrix: processed count matrix
         -col_names: generated column names for count matrix
-
-
+========================================================
+Functions used for the diferential expresion analysis 
+======================================================== 
+    -Function pros_matrix:
+        -raw_counts: input count matrix DataFrame
+        -design: design matrix or None
+        -counts_per_milion: CPM normalized data
+        -df_CountFilter: filtered count matrix
+        -count_transposed: transposed count matrix
+        -dess_matrix: processed design matrix
+        -Condiciones: processed condition labels
+    
+    -Function py_DESEQ2:
+        -trasposed_count_matrix: transposed count matrix (samples x genes)
+        -metadata_states: metadata with condition information
+        -deseq_data: DESeq2 dataset object
+        -error: exception object for error handling
+        -de_seq_stats: DESeq2 statistical analysis object
+        -stadistical_results_df: differential expression results
+        -normalized_counts: DESeq2 normalized count matrix
+    
+    -Function create_volcano_plot:
+        -plot_df: DataFrame with DE results for plotting
+        -pval_threshold: p-value cutoff for significance
+        -lfc_threshold: log2 fold change cutoff
+        -figsize: figure dimensions tuple
+        -output_file: path to save volcano plot
+        -colors: dictionary mapping expression types to colors
+        -fig: matplotlib figure object
+        -ax: matplotlib axes object
+        -e: exception object for error handling
+    
+    -Function create_heatmap:
+        -res_df: DataFrame with DESeq2 results
+        -norm_counts: normalized count matrix
+        -figsize: figure dimensions tuple
+        -output_file: path to save heatmap
+        -significant_genes: significant gene indices
+        -common_genes: genes present in both results and counts
+        -heatmap_data: log-transformed data for heatmap
+        -graph: seaborn clustermap object
+        -e: exception object for error handling
+    
+    -Function run_all_analyses:
+        -res_df: DESeq2 differential expression results
+        -norm_matrix: normalized count matrix
+        -output_dir: directory for output files
+        -prefix: filename prefix for outputs
+        -create: flag for plot generation (0-3)
+        -pval_threshold: p-value significance threshold
+        -lfc_threshold: log2 fold change threshold
+        -volcano_path: volcano plot file path
+        -heatmap_path: heatmap file path
+        -plot_df: copy of results for processing
+        -conditions: list of boolean conditions for expression categories
+        -exp_type: expression type labels
+        -diff_exp_genes_df: filtered significant DE genes
 """ 
 
 from sklearn.decomposition import PCA 
@@ -177,21 +232,21 @@ def box_plot(data:pd.DataFrame)->None:
     ------
     """
     try:
-        box_plt, ax = plt.subplots(figsize=(6, 4)) 
-        sns.boxplot(data= data,ax=ax, x="sample", y="Value", hue="Cond", palette={"Merozoite": "skyblue", "IntraEri":"lightgreen"})
+        box_plt, ax = plt.subplots(figsize=(12, 6)) 
+        sns.boxplot(data= data,ax=ax, x="sample", y="Value", hue="Cond", palette={"Merozoite": "#A0FFE6", "IntraEri":"#FFDAC1"})
         
         ax.set_title("Boxplot of the counts ditribuction", fontsize=14, fontweight="bold", fontstyle="italic", color="darkblue")
-        ax.set_facecolor("beige")
+        ax.set_facecolor("aliceblue")
         ax.figure.set_facecolor("mintcream")
-        
+        ax.grid(True, alpha=0.3)
         ax.legend(
             bbox_to_anchor=(1.02, 0.5), 
             loc='upper left',          
             borderaxespad=0, 
             fontsize = 8,
             title_fontsize=20,
-            labelcolor="g",
-            facecolor="lightblue"
+            labelcolor="black",
+            facecolor="aliceblue"
         ) 
         save_plt(box_plt,"box_exploratory.png") 
     except Exception as e: 
@@ -215,22 +270,23 @@ def density_plot(data)->None:
     ------ 
     """ 
     try:
-        den_plt=sns.displot( data=data, x="Value", hue="sample", col= "Cond", kind="kde", fill=True, alpha= 0.1)
+        den_plt=sns.displot( data=data, x="Value", hue="sample", col= "Cond", kind="kde", fill=True, alpha= 0.1,height=5,aspect=1.2)
+    
         den_plt.fig.set_facecolor("mintcream")
 
         conditions=["Merozoite", "Intra eritrocyte"]
-        # Personalizar cada subplot
         for ax,con in zip(den_plt.axes.flat, conditions):
-            ax.set_facecolor("beige")
+            ax.set_facecolor("aliceblue")
             ax.set_title(f"Density in {con}", fontsize=12, fontweight="bold", color="darkblue")
 
-        # Título general
         den_plt.fig.suptitle("Distribution of Expression Counts", fontsize=16, fontweight="bold", fontstyle="italic", color="darkblue")
-
         den_plt._legend.set_title("Samples")
         den_plt._legend.get_frame().set_facecolor("lightblue")
         den_plt._legend.get_frame().set_edgecolor("black")
         den_plt._legend.set_bbox_to_anchor((1.15, 0.5))
+        den_plt.fig.subplots_adjust(top=0.88)
+        den_plt.tight_layout()
+    
         
         save_plt(den_plt,"density_exploratory.png")
     except Exception as e: 
@@ -280,8 +336,9 @@ def PCA_plot(matrix:pd.DataFrame)->None:
                         ) 
 
         ax.set_title("PCA plot of the varition in count matrix data", fontsize=14, fontweight="bold", fontstyle="italic", color="darkblue")
-        ax.set_facecolor("beige")
+        ax.set_facecolor("aliceblue")
         ax.figure.set_facecolor("mintcream")
+        ax.grid(True, alpha=0.3)
         
         ax.legend(
             bbox_to_anchor=(1.02, 0.5), 
@@ -289,10 +346,10 @@ def PCA_plot(matrix:pd.DataFrame)->None:
             borderaxespad=0, 
             fontsize = 8,
             title_fontsize=20,
-            labelcolor="g",
-            facecolor="lightblue"
+            labelcolor="black",
+            facecolor="aliceblue"
         ) 
-        save_plt(PCA_plt,"PCA_exploratory.png") 
+        save_plt(PCA_plt,"PCA_exploratory.png")
     except Exception as e: 
         write(f"Error making the PCA {e}","exploratory.log","../results/plts")
 
@@ -444,9 +501,9 @@ def pros_matrix(raw_counts:pd.DataFrame, design:pd.DataFrame | None)->pd.DataFra
     
     #first we filter all the counts by counts per million (more than 5 counts per million) and have repressentation in at least 3 columns
     counts_per_milion=(raw_counts/raw_counts.sum())*1000000
-    df_CountFilter= raw_counts[((counts_per_milion) >= 5).sum(axis=1) >= 3]  
+    df_CountFilter= raw_counts[((counts_per_milion) >= 2).sum(axis=1) >= 3]  
     
-    write(f"After filtering by\nMore than 5 counts per million\nRepresentation in at least 3 columns\nThere remain {df_CountFilter.shape[0]} genes","DE_analysis.log","../results/DE")
+    write(f"After filtering by\nMore than 2 counts per million\nRepresentation in at least 3 columns\nThere remain {df_CountFilter.shape[0]} genes","DE_analysis.log","../results/DE")
     
     #now we can transpose the count matrix 
     count_transposed=df_CountFilter.T
